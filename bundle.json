@@ -1,0 +1,22 @@
+{
+  "name": "ssh",
+  "version": "1.0",
+  "author": "Jordan Chen",
+  "email": "jordan.chen@moxa.com",
+  "description": "Handle the ssh settings.",
+  "license": "MOXA",
+  "main": "reboot.py",
+  "argument": "",
+  "priority": 40,
+  "hook": [],
+  "dependencies": {},
+  "repository": "",
+  "role": "model",
+  "ttl": 10,
+  "resources": [
+    {
+      "methods": ["get", "put"],
+      "resource": "/network/ssh"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
 sanji-ssh
 =========
 
-SNMP agent model
+SSHd model.
