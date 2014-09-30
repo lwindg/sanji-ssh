@@ -30,6 +30,20 @@ class TestSshClass(unittest.TestCase):
         self.ssh.stop()
         self.ssh = None
 
+    def test_init(self):
+        def fake_ssh(rc):
+            def _fake_ssh():
+                return rc
+            return _fake_ssh
+
+        # case 1: ssh start failed
+        self.ssh.check_ssh = fake_ssh(0)
+        self.ssh.start_model()
+
+        # case 2: ssh start success
+        self.ssh.check_ssh = fake_ssh(1)
+        self.ssh.start_model()
+
     def test_get(self):
         def resp(code=200, data=None):
             self.assertEqual(code, 200)
