@@ -22,7 +22,6 @@ path_root = os.path.abspath(os.path.dirname(__file__))
 # model's db data
 db_data = {
     "enable": 1,
-    "currentCondition": 1,
 }
 
 
@@ -45,33 +44,16 @@ class Ssh(Sanji):
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
         logger.debug("in get function !!")
-        #self.get_row()
-        response(data={"message": self.message})
+        response(data={"enable": db_data["enable"]})
 
-    '''
     @Route(methods="put", resource="/network/ssh")
     def put(self, message, response):
         if hasattr(message, "data"):
-            self.message = message.data["message"]
+            self.message = message.data["enable"]
+            logger.debug("in put function")
+            logger.debug(" put_data:%s" % db_data["enable"])
             return response()
         return response(code=400, data={"message": "Invaild Input."})
-
-    @Route(methods="post", resource="/network/ssh")
-    def post(self, message, response):
-        if hasattr(message, "data"):
-            self.message = {"id": 53}
-            return response(data=self.message)
-        return response(code=400, data={"message": "Invalid Post Input."})
-
-    @Route(methods="delete", resource="/network/ssh")
-    def delete(self, message, response):
-        if hasattr(message, "param"):
-            if "id" in message.param:
-                self.message = "delete index: %s" % message.param["id"]
-                return response()
-
-        return response(code=400, data={"message": "Invalid Delete Input."})
-    '''
 
     # def recover_db_from_factory(self):
     #     cmd = "cp %s %s" % (self.model_profile["model_factory_db"],
@@ -82,11 +64,9 @@ class Ssh(Sanji):
         cmd = "service ssh start"
         subprocess.call(cmd, shell=True)
         rtn_code = self.check_ssh()
-        if rtn_code == 1:
-            db_data["currentCondition"] = 1
+        if rtn_code is True:
             logger.info("ssh start success")
         else:
-            db_data["currentCondition"] = 0
             logger.info("ssh start fail")
 
     def check_ssh(self):
@@ -96,11 +76,11 @@ class Ssh(Sanji):
         grep_rtn = process.communicate()
         if grep_rtn[0].find("/usr/sbin/sshd") != -1:
             logger.debug("------------------>check ssh success")
-            return 1
+            return True
         else:
             logger.debug("------------------>check ssh fail")
-            return 0
-
+            return False
+ 
 if __name__ == '__main__':
     FORMAT = '%(asctime)s - %(levelname)s - %(lineno)s - %(message)s'
     logging.basicConfig(level=0, format=FORMAT)
