@@ -17,13 +17,11 @@ class Ssh(Sanji):
     def init(self, *args, **kwargs):
         path_root = os.path.abspath(os.path.dirname(__file__))
         self.model = ModelInitiator("ssh", path_root)
-        logger.debug("---->db enable:%s" % self.model.db["enable"])
         if self.model.db["enable"] == 1:
             self.start_model()
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
-        logger.debug("in get function !!")
         response(data={"enable": self.model.db["enable"]})
 
     '''
@@ -67,10 +65,8 @@ class Ssh(Sanji):
                                    shell=True)
         grep_rtn = process.communicate()
         if grep_rtn[0].find("/usr/sbin/sshd") != -1:
-            logger.debug("------------------>check ssh success")
             return True
         else:
-            logger.debug("------------------>check ssh fail")
             return False
 
 if __name__ == '__main__':
