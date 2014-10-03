@@ -37,27 +37,26 @@ class TestSshClass(unittest.TestCase):
             return _fake_ssh
 
         # case 1: ssh start failed
-        self.ssh.check_ssh = fake_ssh(0)
+        self.ssh.check_ssh = fake_ssh(False)
         self.ssh.start_model()
 
         # case 2: ssh start success
-        self.ssh.check_ssh = fake_ssh(1)
+        self.ssh.check_ssh = fake_ssh(True)
         self.ssh.start_model()
 
     def test_get(self):
         def resp(code=200, data=None):
             self.assertEqual(code, 200)
-            self.assertEqual(data, {"message": self.ssh.message})
         self.ssh.get(message=None, response=resp, test=True)
-
+    '''
     def test_put(self):
-        pass
+        message = Message({"data": {"enable": 1}})
+        print "in test_put"
 
-    def test_post(self):
-        pass
-
-    def test_delete(self):
-        pass
+        # case 1: put successfully
+        def resp(code=200, data=None):
+            self.assertEqual(self.ssh.message, 1)
+    '''
 
 if __name__ == "__main__":
     unittest.main()
