@@ -17,13 +17,12 @@ class Ssh(Sanji):
     def init(self, *args, **kwargs):
         path_root = os.path.abspath(os.path.dirname(__file__))
         self.model = ModelInitiator("ssh", path_root)
-        logger.debug("---->db enable:%s" % self.model.db["enable"])
+        #logger.debug("---->db enable:%s" % self.model.db["enable"])
         if self.model.db["enable"] == 1:
             self.start_model()
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
-        logger.debug("in get function !!")
         response(data={"enable": self.model.db["enable"]})
 
     '''
@@ -55,22 +54,20 @@ class Ssh(Sanji):
     def start_model(self):
         cmd = "service ssh start"
         subprocess.call(cmd, shell=True)
-        rtn_code = self.check_ssh()
-        if rtn_code is True:
-            logger.info("ssh start success")
+        rc = self.check_ssh()
+        if rc is True:
+            logger.info("ssh daemon start successfully.")
         else:
-            logger.info("ssh start fail")
+            logger.info("ssh daemon start failed.")
 
     def check_ssh(self):
         cmd = "ps aux | grep ssh"
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                    shell=True)
-        grep_rtn = process.communicate()
-        if grep_rtn[0].find("/usr/sbin/sshd") != -1:
-            logger.debug("------------------>check ssh success")
+        grep_rc = process.communicate()[0]
+        if grep_rc.find("/usr/sbin/sshd") != -1:
             return True
         else:
-            logger.debug("------------------>check ssh fail")
             return False
 
 if __name__ == '__main__':
