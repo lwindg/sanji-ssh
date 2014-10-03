@@ -17,7 +17,6 @@ class Ssh(Sanji):
     def init(self, *args, **kwargs):
         path_root = os.path.abspath(os.path.dirname(__file__))
         self.model = ModelInitiator("ssh", path_root)
-        #logger.debug("---->db enable:%s" % self.model.db["enable"])
         if self.model.db["enable"] == 1:
             self.start_model()
 
