@@ -57,6 +57,13 @@ class TestSshClass(unittest.TestCase):
         def resp(code=200, data=None):
             self.assertEqual(self.ssh.message, 1)
     '''
+    def test_start_model(self):
+        # TODO: this method need to write test code
+        pass
+
+    def test_check_ssh(self):
+        # TODO: this method need to write test code
+        pass
 
 if __name__ == "__main__":
     unittest.main()

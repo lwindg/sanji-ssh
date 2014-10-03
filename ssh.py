@@ -53,18 +53,18 @@ class Ssh(Sanji):
     def start_model(self):
         cmd = "service ssh start"
         subprocess.call(cmd, shell=True)
-        rtn_code = self.check_ssh()
-        if rtn_code is True:
-            logger.info("ssh start success")
+        rc = self.check_ssh()
+        if rc is True:
+            logger.info("ssh daemon start successfully.")
         else:
-            logger.info("ssh start fail")
+            logger.info("ssh daemon start failed.")
 
     def check_ssh(self):
         cmd = "ps aux | grep ssh"
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                    shell=True)
-        grep_rtn = process.communicate()
-        if grep_rtn[0].find("/usr/sbin/sshd") != -1:
+        grep_rc = process.communicate()[0]
+        if grep_rc.find("/usr/sbin/sshd") != -1:
             return True
         else:
             return False
