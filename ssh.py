@@ -56,17 +56,24 @@ class Ssh(Sanji):
         rc = self.check_ssh()
         if rc is True:
             logger.info("ssh daemon start successfully.")
+            print "ssh start success"
         else:
             logger.info("ssh daemon start failed.")
+            print "ssh start failed"
 
     def check_ssh(self):
+        find_process = None
         cmd = "ps aux | grep ssh"
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                    shell=True)
         grep_rc = process.communicate()[0]
-        if grep_rc.find("/usr/sbin/sshd") != -1:
+        print("grep_rc:%s" % grep_rc)
+        find_process = grep_rc.find("/usr/sbin/sshd")
+        print("find_process:%s" % find_process)
+        if find_process != -1:
             return True
         else:
+            print "-------------> grep failed"
             return False
 
 if __name__ == '__main__':

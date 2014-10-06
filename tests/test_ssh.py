@@ -9,6 +9,7 @@ import logging
 
 from sanji.connection.mockup import Mockup
 from sanji.message import Message
+from mock import patch
 
 logger = logging.getLogger()
 
@@ -36,9 +37,9 @@ class TestSshClass(unittest.TestCase):
                 return rc
             return _fake_ssh
 
-        # case 1: ssh start failed
-        self.ssh.check_ssh = fake_ssh(False)
-        self.ssh.start_model()
+        # # case 1: ssh start failed
+        # self.ssh.check_ssh = fake_ssh(False)
+        # self.ssh.start_model()
 
         # case 2: ssh start success
         self.ssh.check_ssh = fake_ssh(True)
@@ -59,11 +60,21 @@ class TestSshClass(unittest.TestCase):
     '''
     def test_start_model(self):
         # TODO: this method need to write test code
-        pass
+        with patch("ssh.Ssh.check_ssh") as check_ssh:
+            # case 1: rc = True
+            check_ssh.return_value = True
+            self.ssh.start_model()
+
+            # case 2: rc = False
+            check_ssh.return_value = False
+            self.ssh.start_model()
 
     def test_check_ssh(self):
         # TODO: this method need to write test code
-        pass
+        with patch("ssh.subprocess") as subprocess:
+            subprocess.Popen.return_value.returncode = 999
+            self.ssh.check_ssh()
+
 
 if __name__ == "__main__":
     unittest.main()
