@@ -21,6 +21,9 @@ class Ssh(Sanji):
         if self.model.db["enable"] == 1:
             self.start_model()
 
+        self.rsp = {}
+        self.rsp["code": 0, "data": None]
+
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
         return response(data={"enable": self.model.db["enable"]})
@@ -28,10 +31,10 @@ class Ssh(Sanji):
     @Route(methods="put", resource="/network/ssh")
     def put(self, message, response):
         if hasattr(message, "data"):
-            enable = message.data["enable"]
             self.model.db["enable"] = message.data["enable"]
             self.model.save_db()
-            self.update_ssh(enable, message, response)
+            self.update_ssh()
+            return response(code=self.rsp["code"], data=self.rsp["data"])
 
     def start_model(self):
         cmd = "service ssh restart"
@@ -54,35 +57,37 @@ class Ssh(Sanji):
         else:
             return False
 
-    def start_ssh(self, message, response):
+    def start_ssh(self):
         cmd = "service ssh restart"
         subprocess.call(cmd, shell=True)
         rc = self.check_ssh()
         if rc is True:
             logger.info("ssh daemon start successfully.")
-            return response(data=message.data)
+            return True
         else:
             logger.info("ssh daemon start failed.")
-            return response(code=400,
-                            data={"message": "ssh daemon start failed"})
+            self.rsp["code"] = 400
+            self.rsp["data"] = {"message": "ssh daemon start failed"}
+            return False
 
-    def stop_ssh(self, message, response):
+    def stop_ssh(self):
         cmd = "service ssh stop"
         subprocess.call(cmd, shell=True)
         rc = self.check_ssh()
         if rc is False:
             logger.info("ssh daemon stop successfully.")
-            return response(data=message.data)
+            return True
         else:
             logger.info("ssh daemon stop failed.")
-            return response(code=400,
-                            data={"message": "ssh daemon stop failed"})
+            self.rsp["code"] = 400
+            self.rsp["data"] = {"message": "ssh daemon stop failed"}
+            return False
 
-    def update_ssh(self, enable, message, response):
-        if enable == 1:
-            self.start_ssh(message, response)
-        else:
-            self.stop_ssh(message, response)
+    def update_ssh(self):
+        if self.enable == 1:
+            return self.start_ssh()
+        elif self.enable == 0:
+            return self.stop_ssh()
 
 
 if __name__ == '__main__':

@@ -8,7 +8,6 @@ import unittest
 import logging
 
 from sanji.connection.mockup import Mockup
-from sanji.message import Message
 from mock import patch
 
 logger = logging.getLogger()
@@ -37,7 +36,7 @@ class TestSshClass(unittest.TestCase):
                 return rc
             return _fake_ssh
 
-        # # case 1: ssh start failed
+        # case 1: ssh start failed
         # self.ssh.check_ssh = fake_ssh(False)
         # self.ssh.start_model()
 
@@ -46,9 +45,14 @@ class TestSshClass(unittest.TestCase):
         self.ssh.start_model()
 
     def test_get(self):
+        # case 1: code
         def resp(code=200, data=None):
             self.assertEqual(code, 200)
         self.ssh.get(message=None, response=resp, test=True)
+        # TODO: key "enable"
+
+        # TODO: Value in (0, 1)
+
     '''
     def test_put(self):
         message = Message({"data": {"enable": 1}})
