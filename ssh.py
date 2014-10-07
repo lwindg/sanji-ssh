@@ -20,9 +20,9 @@ class Ssh(Sanji):
         self.model = ModelInitiator("ssh", path_root)
         if self.model.db["enable"] == 1:
             self.start_model()
-
         self.rsp = {}
-        self.rsp["code": 0, "data": None]
+        self.rsp["code"] = 0
+        self.rsp["data"] = None
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
@@ -35,6 +35,7 @@ class Ssh(Sanji):
             self.model.save_db()
             self.update_ssh()
             return response(code=self.rsp["code"], data=self.rsp["data"])
+        return response(code=400, data={"message": "Invaild Input"})
 
     def start_model(self):
         cmd = "service ssh restart"
@@ -63,6 +64,8 @@ class Ssh(Sanji):
         rc = self.check_ssh()
         if rc is True:
             logger.info("ssh daemon start successfully.")
+            self.rsp["code"] = 200
+            self.rsp["data"] = {"enable": self.model.db["enable"]}
             return True
         else:
             logger.info("ssh daemon start failed.")
@@ -76,6 +79,8 @@ class Ssh(Sanji):
         rc = self.check_ssh()
         if rc is False:
             logger.info("ssh daemon stop successfully.")
+            self.rsp["code"] = 200
+            self.rsp["data"] = self.model.db["enable"]
             return True
         else:
             logger.info("ssh daemon stop failed.")
@@ -84,9 +89,9 @@ class Ssh(Sanji):
             return False
 
     def update_ssh(self):
-        if self.enable == 1:
+        if self.model.db["enable"] == 1:
             return self.start_ssh()
-        elif self.enable == 0:
+        elif self.model.db["enable"] == 0:
             return self.stop_ssh()
 
 
