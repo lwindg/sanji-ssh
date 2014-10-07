@@ -37,21 +37,33 @@ class TestSshClass(unittest.TestCase):
             return _fake_ssh
 
         # case 1: ssh start failed
-        # self.ssh.check_ssh = fake_ssh(False)
-        # self.ssh.start_model()
+        self.ssh.check_ssh = fake_ssh(False)
+        self.ssh.start_model()
 
         # case 2: ssh start success
         self.ssh.check_ssh = fake_ssh(True)
         self.ssh.start_model()
 
     def test_get(self):
-        # case 1: code
+        # case 1: check code
         def resp(code=200, data=None):
             self.assertEqual(code, 200)
         self.ssh.get(message=None, response=resp, test=True)
-        # TODO: key "enable"
 
-        # TODO: Value in (0, 1)
+        # case 2: check data enable = 1
+        def resp1(code=200, data=None):
+            self.assertEqual(data, {"enable": 1})
+        self.ssh.model.db["enable"] = 1
+        self.ssh.model.save_db()
+        print("model db:%s" % self.ssh.model.db["enable"])
+        self.ssh.get(message=None, response=resp1, test=True)
+
+        # case 3: check data enable = 0
+        def resp2(code=200, data=None):
+            self.assertEqual(data, {"enable": 0})
+        self.ssh.model.db["enable"] = 0
+        self.ssh.model.save_db()
+        self.ssh.get(message=None, response=resp2, test=True)
 
     '''
     def test_put(self):
@@ -61,6 +73,7 @@ class TestSshClass(unittest.TestCase):
         # case 1: put successfully
         def resp(code=200, data=None):
             self.assertEqual(self.ssh.message, 1)
+    '''
     '''
     def test_start_model(self):
         # TODO: this method need to write test code
@@ -78,7 +91,7 @@ class TestSshClass(unittest.TestCase):
         with patch("ssh.subprocess") as subprocess:
             subprocess.Popen.return_value.returncode = 999
             self.ssh.check_ssh()
-
+    '''
 
 if __name__ == "__main__":
     unittest.main()
