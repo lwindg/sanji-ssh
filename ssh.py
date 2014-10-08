@@ -4,7 +4,6 @@
 import logging
 import os
 import subprocess
-import uuid
 from sanji.core import Sanji
 from sanji.core import Route
 from sanji.model_initiator import ModelInitiator
@@ -47,16 +46,9 @@ class Ssh(Sanji):
             logger.info("ssh daemon start failed.")
 
     def check_ssh(self):
-        find_process = None
-        cmd = "ps aux | grep ssh"
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                   shell=True)
-        grep_rc = process.communicate()[0]
-        find_process = grep_rc.find("/usr/sbin/sshd")
-        if find_process != -1:
-            return True
-        else:
-            return False
+        cmd = "ps aux | grep -v grep | grep ssh"
+        rc = subprocess.call(cmd, shell=True)
+        return True if rc == 0 else False
 
     def start_ssh(self):
         cmd = "service ssh restart"

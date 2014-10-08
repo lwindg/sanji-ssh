@@ -110,7 +110,7 @@ class TestSshClass(unittest.TestCase):
 
     def test_check_ssh(self):
         with patch("ssh.subprocess") as subprocess:
-            subprocess.Popen.return_value.returncode = 999
+            subprocess.Popen.return_value = 999
             self.ssh.check_ssh()
     '''
 
