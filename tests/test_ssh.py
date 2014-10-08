@@ -51,7 +51,7 @@ class TestSshClass(unittest.TestCase):
             self.assertEqual(code, 200)
         self.ssh.get(message=None, response=resp, test=True)
 
-        # case 2: check data enable = 1
+        # case 2: check data of enable = 1
         def resp1(code=200, data=None):
             self.assertEqual(data, {"enable": 1})
         self.ssh.model.db["enable"] = 1
@@ -59,7 +59,7 @@ class TestSshClass(unittest.TestCase):
         print("model db:%s" % self.ssh.model.db["enable"])
         self.ssh.get(message=None, response=resp1, test=True)
 
-        # case 3: check data enable = 0
+        # case 3: check data of enable = 0
         def resp2(code=200, data=None):
             self.assertEqual(data, {"enable": 0})
         self.ssh.model.db["enable"] = 0
@@ -75,29 +75,45 @@ class TestSshClass(unittest.TestCase):
             self.assertEqual(data, {"message": "Invaild Input"})
         self.ssh.put(message=message, response=resp, test=True)
 
-        # case 2: update_ssh return True
+        # case 2: put success
         # case 2.1: ssh start success
         message = Message({"data": {"enable": 1}})
 
         def resp1(code=200, data=None):
             self.assertEqual(code, 200)
             self.assertEqual(data, {"enable": 1})
-            print ("[resp1]data:%s" % data)
         self.ssh.put(message=message, response=resp1, test=True)
 
         # case 2.2: ssh stop success
         message = Message({"data": {"enable": 0}})
-        print("[resp2]message:%s" % message.data["enable"])
 
         def resp2(code=200, data=None):
             self.assertEqual(code, 200)
             self.assertEqual(data, {"enable": 0})
         self.ssh.put(message=message, response=resp2, test=True)
-        # case 3: update_ssh return False
-        # case 3.1: ssh start failed
-        # case 3.2: ssh stop failed
 
-    '''
+        # case 3: put failed
+
+        # case 3.1: ssh start failed
+        message = Message({"data": {"enable": 1}})
+        with patch("ssh.Ssh.check_ssh") as check_ssh:
+            check_ssh.return_value = False
+
+            def resp3(code=200, data=None):
+                self.assertEqual(code, 400)
+                self.assertEqual(data, {"message": "ssh daemon start failed"})
+            self.ssh.put(message=message, response=resp3, test=True)
+
+        #case 3.2: ssh stop failed
+        message = Message({"data": {"enable": 0}})
+        with patch("ssh.Ssh.check_ssh") as check_ssh:
+            check_ssh.return_value = True
+
+            def resp4(code=200, data=None):
+                self.assertEqual(code, 400)
+                self.assertEqual(data, {"message": "ssh daemon stop failed"})
+            self.ssh.put(message=message, response=resp4, test=True)
+
     def test_start_model(self):
         with patch("ssh.Ssh.check_ssh") as check_ssh:
             # case 1: rc = True
@@ -110,9 +126,15 @@ class TestSshClass(unittest.TestCase):
 
     def test_check_ssh(self):
         with patch("ssh.subprocess") as subprocess:
-            subprocess.Popen.return_value = 999
-            self.ssh.check_ssh()
-    '''
+            # case 1: rc = True
+            subprocess.call.return_value = 0
+            rc = self.ssh.check_ssh()
+            self.assertEqual(rc, True)
+
+            # case 2: rc = False
+            subprocess.call.return_value = 1
+            rc = self.ssh.check_ssh()
+            self.assertEqual(rc, False)
 
 if __name__ == "__main__":
     unittest.main()
