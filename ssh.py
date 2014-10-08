@@ -80,7 +80,7 @@ class Ssh(Sanji):
         if rc is False:
             logger.info("ssh daemon stop successfully.")
             self.rsp["code"] = 200
-            self.rsp["data"] = self.model.db["enable"]
+            self.rsp["data"] = {"enable": self.model.db["enable"]}
             return True
         else:
             logger.info("ssh daemon stop failed.")
