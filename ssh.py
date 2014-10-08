@@ -46,7 +46,7 @@ class Ssh(Sanji):
             logger.info("ssh daemon start failed.")
 
     def check_ssh(self):
-        cmd = "ps aux | grep -v grep | grep ssh"
+        cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
         rc = subprocess.call(cmd, shell=True)
         return True if rc == 0 else False
 
