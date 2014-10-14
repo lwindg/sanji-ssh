@@ -104,7 +104,7 @@ class TestSshClass(unittest.TestCase):
                 self.assertEqual(data, {"message": "ssh daemon start failed"})
             self.ssh.put(message=message, response=resp3, test=True)
 
-        #case 3.2: ssh stop failed
+        # case 3.2: ssh stop failed
         message = Message({"data": {"enable": 0}})
         with patch("ssh.Ssh.check_ssh") as check_ssh:
             check_ssh.return_value = True
