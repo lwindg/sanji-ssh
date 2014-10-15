@@ -78,6 +78,8 @@ class TestSshClass(unittest.TestCase):
         # case 2: put success
         # case 2.1: ssh start success
         message = Message({"data": {"enable": 1}})
+        with patch("ssh.Ssh.check_ssh") as check_ssh:
+            check_ssh.return_value = True
 
         def resp1(code=200, data=None):
             self.assertEqual(code, 200)
@@ -86,6 +88,8 @@ class TestSshClass(unittest.TestCase):
 
         # case 2.2: ssh stop success
         message = Message({"data": {"enable": 0}})
+        with patch("ssh.Ssh.check_ssh") as check_ssh:
+            check_ssh.return_value = True
 
         def resp2(code=200, data=None):
             self.assertEqual(code, 200)
@@ -118,11 +122,13 @@ class TestSshClass(unittest.TestCase):
         with patch("ssh.Ssh.check_ssh") as check_ssh:
             # case 1: rc = True
             check_ssh.return_value = True
-            self.ssh.start_model()
+            rc = self.ssh.start_model()
+            self.assertEqual(rc, True)
 
             # case 2: rc = False
             check_ssh.return_value = False
-            self.ssh.start_model()
+            rc = self.ssh.start_model()
+            self.assertEqual(rc, False)
 
     def test_check_ssh(self):
         with patch("ssh.subprocess") as subprocess:

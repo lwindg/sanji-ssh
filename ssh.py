@@ -29,7 +29,7 @@ class Ssh(Sanji):
 
     @Route(methods="put", resource="/network/ssh")
     def put(self, message, response):
-        if hasattr(message, "data"):
+        if hasattr(message, "data") and "enable" in message.data:
             self.model.db["enable"] = message.data["enable"]
             self.model.save_db()
             self.update_ssh()
@@ -42,8 +42,10 @@ class Ssh(Sanji):
         rc = self.check_ssh()
         if rc is True:
             logger.info("ssh daemon start successfully.")
+            return True
         else:
             logger.info("ssh daemon start failed.")
+            return False
 
     def check_ssh(self):
         cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
