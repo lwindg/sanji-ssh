@@ -81,20 +81,20 @@ class TestSshClass(unittest.TestCase):
         with patch("ssh.Ssh.check_ssh") as check_ssh:
             check_ssh.return_value = True
 
-        def resp1(code=200, data=None):
-            self.assertEqual(code, 200)
-            self.assertEqual(data, {"enable": 1})
-        self.ssh.put(message=message, response=resp1, test=True)
+            def resp1(code=200, data=None):
+                    self.assertEqual(code, 200)
+                    self.assertEqual(data, {"enable": 1})
+            self.ssh.put(message=message, response=resp1, test=True)
 
         # case 2.2: ssh stop success
         message = Message({"data": {"enable": 0}})
         with patch("ssh.Ssh.check_ssh") as check_ssh:
-            check_ssh.return_value = True
+            check_ssh.return_value = False
 
-        def resp2(code=200, data=None):
-            self.assertEqual(code, 200)
-            self.assertEqual(data, {"enable": 0})
-        self.ssh.put(message=message, response=resp2, test=True)
+            def resp2(code=200, data=None):
+                self.assertEqual(code, 200)
+                self.assertEqual(data, {"enable": 0})
+            self.ssh.put(message=message, response=resp2, test=True)
 
         # case 3: put failed
 

@@ -71,6 +71,7 @@ class Ssh(Sanji):
         cmd = "service ssh stop"
         subprocess.call(cmd, shell=True)
         rc = self.check_ssh()
+        print("stop_ssh rc: %s" % rc)
         if rc is False:
             logger.info("ssh daemon stop successfully.")
             self.rsp["code"] = 200
