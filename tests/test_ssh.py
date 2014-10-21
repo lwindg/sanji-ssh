@@ -17,8 +17,8 @@ try:
     sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../')
     from ssh import Ssh
 except ImportError as e:
-    print "Please check the python PATH for import test module. (%s)" \
-        % __file__
+    logger.debug("Please check the python PATH for import test module. (%s)"
+                 % __file__)
     exit(1)
 
 
@@ -56,7 +56,6 @@ class TestSshClass(unittest.TestCase):
             self.assertEqual(data, {"enable": 1})
         self.ssh.model.db["enable"] = 1
         self.ssh.model.save_db()
-        print("model db:%s" % self.ssh.model.db["enable"])
         self.ssh.get(message=None, response=resp1, test=True)
 
         # case 3: check data of enable = 0
@@ -143,4 +142,5 @@ class TestSshClass(unittest.TestCase):
             self.assertEqual(rc, False)
 
 if __name__ == "__main__":
+    logger = logging.getLogger("TestSshClass")
     unittest.main()
