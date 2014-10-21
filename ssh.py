@@ -19,9 +19,7 @@ class Ssh(Sanji):
         self.model = ModelInitiator("ssh", path_root, backup_interval=1)
         if self.model.db["enable"] == 1:
             self.start_model()
-        self.rsp = {}
-        self.rsp["code"] = 0
-        self.rsp["data"] = None
+        self.rsp = {"code": 0, "data": None}
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):

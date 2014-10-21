@@ -97,7 +97,6 @@ class TestSshClass(unittest.TestCase):
             self.ssh.put(message=message, response=resp2, test=True)
 
         # case 3: put failed
-
         # case 3.1: ssh start failed
         message = Message({"data": {"enable": 1}})
         with patch("ssh.Ssh.check_ssh") as check_ssh:
