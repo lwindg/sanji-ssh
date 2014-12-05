@@ -10,6 +10,7 @@ import logging
 from sanji.connection.mockup import Mockup
 from sanji.message import Message
 from mock import patch
+from mock import Mock
 
 logger = logging.getLogger()
 
@@ -31,116 +32,188 @@ class TestSshClass(unittest.TestCase):
         self.ssh.stop()
         self.ssh = None
 
-    def test_init(self):
-        def fake_ssh(rc):
-            def _fake_ssh():
-                return rc
-            return _fake_ssh
+    def test_do_get_should_return_db(self):
 
-        # case 1: ssh start failed
-        self.ssh.check_ssh = fake_ssh(False)
-        self.ssh.start_model()
+        # arrange
+        self.ssh.model.db = {"enable": 1}
+        mock_fun = Mock(code=200, data=None)
 
-        # case 2: ssh start success
-        self.ssh.check_ssh = fake_ssh(True)
-        self.ssh.start_model()
+        # act
+        Ssh.do_get(self.ssh, message=None, response=mock_fun)
 
-    def test_get(self):
-        # case 1: check code
-        def resp(code=200, data=None):
-            self.assertEqual(code, 200)
-        self.ssh.get(message=None, response=resp, test=True)
+        # assert
+        self.assertEqual(len(mock_fun.call_args_list), 1)
+        self.assertEqual(mock_fun.call_args_list[0][1]["data"], {"enable": 1})
 
-        # case 2: check data of enable = 1
-        def resp1(code=200, data=None):
-            self.assertEqual(data, {"enable": 1})
-        self.ssh.model.db["enable"] = 1
-        self.ssh.model.save_db()
-        print("model db:%s" % self.ssh.model.db["enable"])
-        self.ssh.get(message=None, response=resp1, test=True)
+    def test_do_put_with_invalid_input_should_return_code_400(self):
 
-        # case 3: check data of enable = 0
-        def resp2(code=200, data=None):
-            self.assertEqual(data, {"enable": 0})
-        self.ssh.model.db["enable"] = 0
-        self.ssh.model.save_db()
-        self.ssh.get(message=None, response=resp2, test=True)
-
-    def test_put(self):
-        # case 1: message donsn't has data attribute
+        # arrange
         message = Message({})
+        mock_fun = Mock(code=200, data=None)
 
-        def resp(code=200, data=None):
-            self.assertEqual(code, 400)
-            self.assertEqual(data, {"message": "Invaild Input"})
-        self.ssh.put(message=message, response=resp, test=True)
+        # act
+        Ssh.do_put(self.ssh, message=message, response=mock_fun)
 
-        # case 2: put success
-        # case 2.1: ssh start success
+        # assert    
+        self.assertEqual(len(mock_fun.call_args_list), 1)
+        self.assertEqual(mock_fun.call_args_list[0][1]["code"], 400)
+
+    def test_do_put_with_invalid_data_should_return_code_400(self):
+
+        # arrange
+        message = Message({"data": {"enable": 56}})
+        mock_fun = Mock(code=200, data=None)
+
+        # act
+        Ssh.do_put(self.ssh, message=message, response=mock_fun)
+
+        # assert
+        self.assertEqual(len(mock_fun.call_args_list), 1)
+        self.assertEqual(mock_fun.call_args_list[0][1]["code"], 400)
+
+    @patch("ssh.Ssh.update_ssh")
+    def test_do_put_with_correct_data_should_return_code_200(self, update_ssh):
+
+        # arrange
         message = Message({"data": {"enable": 1}})
-        with patch("ssh.Ssh.check_ssh") as check_ssh:
-            check_ssh.return_value = True
+        update_ssh.return_value = True
+        self.ssh.rsp["code"] = 200
+        self.ssh.rsp["data"] = {"enable": 1}
+        mock_fun = Mock(code=400, data=None)
 
-            def resp1(code=200, data=None):
-                    self.assertEqual(code, 200)
-                    self.assertEqual(data, {"enable": 1})
-            self.ssh.put(message=message, response=resp1, test=True)
+        # act
+        Ssh.do_put(self.ssh, message=message, response=mock_fun)
 
-        # case 2.2: ssh stop success
-        message = Message({"data": {"enable": 0}})
-        with patch("ssh.Ssh.check_ssh") as check_ssh:
-            check_ssh.return_value = False
+        # assert
+        self.assertEqual(len(mock_fun.call_args_list), 1)
+        self.assertEqual(mock_fun.call_args_list[0][1]["code"], 200)
+        self.assertEqual(mock_fun.call_args_list[0][1]["data"], {"enable": 1})
 
-            def resp2(code=200, data=None):
-                self.assertEqual(code, 200)
-                self.assertEqual(data, {"enable": 0})
-            self.ssh.put(message=message, response=resp2, test=True)
+    @patch("ssh.Ssh.update_ssh")
+    def test_do_put_with_update_ssh_failed_should_return_code_400(self, update_ssh):
 
-        # case 3: put failed
-
-        # case 3.1: ssh start failed
+        # arrange
         message = Message({"data": {"enable": 1}})
-        with patch("ssh.Ssh.check_ssh") as check_ssh:
-            check_ssh.return_value = False
+        update_ssh.return_value = False
+        mock_fun = Mock(code=200, data=None)
 
-            def resp3(code=200, data=None):
-                self.assertEqual(code, 400)
-                self.assertEqual(data, {"message": "ssh daemon start failed"})
-            self.ssh.put(message=message, response=resp3, test=True)
+        # act
+        Ssh.do_put(self.ssh, message=message, response=mock_fun)
 
-        # case 3.2: ssh stop failed
-        message = Message({"data": {"enable": 0}})
-        with patch("ssh.Ssh.check_ssh") as check_ssh:
-            check_ssh.return_value = True
+        # assert
+        self.assertEqual(len(mock_fun.call_args_list), 1)
+        self.assertEqual(mock_fun.call_args_list[0][1]["code"], 400)
 
-            def resp4(code=200, data=None):
-                self.assertEqual(code, 400)
-                self.assertEqual(data, {"message": "ssh daemon stop failed"})
-            self.ssh.put(message=message, response=resp4, test=True)
+    @patch("ssh.subprocess")
+    def test_check_ssh_should_return_True(self, subprocess):
 
-    def test_start_model(self):
-        with patch("ssh.Ssh.check_ssh") as check_ssh:
-            # case 1: rc = True
-            check_ssh.return_value = True
-            rc = self.ssh.start_model()
-            self.assertEqual(rc, True)
+        # arrange
+        subprocess.call.return_value = 0
 
-            # case 2: rc = False
-            check_ssh.return_value = False
-            rc = self.ssh.start_model()
-            self.assertEqual(rc, False)
+        # act
+        rc = self.ssh.check_ssh()
 
-    def test_check_ssh(self):
-        with patch("ssh.subprocess") as subprocess:
-            # case 1: rc = True
-            subprocess.call.return_value = 0
-            rc = self.ssh.check_ssh()
-            self.assertEqual(rc, True)
+        # assert
+        self.assertEqual(rc, True)
 
-            # case 2: rc = False
-            subprocess.call.return_value = 1
-            rc = self.ssh.check_ssh()
-            self.assertEqual(rc, False)
+    @patch("ssh.subprocess")
+    def test_check_ssh_should_return_False(self, subprocess):
+
+        # arrange
+        subprocess.call.return_value = 1
+
+        # act
+        rc = self.ssh.check_ssh()
+
+        # assert
+        self.assertEqual(rc, False)
+
+    @patch("ssh.Ssh.check_ssh")
+    @patch("ssh.subprocess")
+    def test_start_ssh_with_check_ssh_success_should_return_code_200(self, subprocess, check_ssh):
+
+        # arrange
+        subprocess.call.return_value = 0
+        check_ssh.return_value = True
+
+        # act
+        rc = self.ssh.start_ssh()
+
+        # assert
+        self.assertEqual(self.ssh.rsp["code"], 200)
+        self.assertEqual(rc, True)
+
+    @patch("ssh.Ssh.check_ssh")
+    @patch("ssh.subprocess")
+    def test_start_ssh_with_check_ssh_failed_should_return_code_400(self, subprocess, check_ssh):
+
+        # arrange
+        subprocess.call.return_value = 0
+        check_ssh.return_value = False
+
+        # act
+        rc = self.ssh.start_ssh()
+
+        # assert
+        self.assertEqual(self.ssh.rsp["code"], 400)
+        self.assertEqual(rc, False)
+
+    @patch("ssh.Ssh.check_ssh")
+    @patch("ssh.subprocess")
+    def test_stop_ssh_with_check_ssh_success_should_return_code_200(self, subprocess, check_ssh):
+
+        # arrange
+        subprocess.call.return_value = 0
+        check_ssh.return_value = False
+
+        # act
+        rc = self.ssh.stop_ssh()
+
+        # assert
+        self.assertEqual(self.ssh.rsp["code"], 200)
+        self.assertEqual(rc, True)
+
+    @patch("ssh.Ssh.check_ssh")
+    @patch("ssh.subprocess")
+    def test_stop_ssh_with_check_ssh_failed_should_return_code_400(self, subprocess, check_ssh):
+
+        # arrange
+        subprocess.call.return_value = 0
+        check_ssh.return_value = True
+
+        # act
+        rc = self.ssh.stop_ssh()
+
+        # assert
+        self.assertEqual(self.ssh.rsp["code"], 400)
+        self.assertEqual(rc, False)
+
+    @patch("ssh.Ssh.start_ssh")
+    def test_update_ssh_with_start_ssh_should_return_true(self, start_ssh):
+
+        # arrange
+        self.ssh.model.db["enable"] = 1
+        start_ssh.return_value = True
+
+        # act
+        rc = self.ssh.update_ssh()
+
+        # assert
+        self.assertEqual(rc, True)
+
+    @patch("ssh.Ssh.stop_ssh")
+    def test_update_ssh_with_stop_ssh_should_return_true(self, stop_ssh):
+
+        # arrange
+        self.ssh.model.db["enable"] = 0
+        stop_ssh.return_value = True
+
+        # act
+        rc = self.ssh.update_ssh()
+
+        # assert
+        self.assertEqual(rc, True)
+
 
 if __name__ == "__main__":
     unittest.main()
