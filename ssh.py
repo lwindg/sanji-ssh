@@ -4,12 +4,26 @@
 import logging
 import os
 import subprocess
+import jsonschema
+
 from sanji.core import Sanji
 from sanji.core import Route
 from sanji.model_initiator import ModelInitiator
 from sanji.connection.mqtt import Mqtt
 
 logger = logging.getLogger()
+
+PUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "enable": {
+            "type": "integer",
+            "maximum": 1,
+            "minimum": 0
+        }
+    },
+    "required": ["enable"]
+}
 
 
 class Ssh(Sanji):
@@ -23,9 +37,13 @@ class Ssh(Sanji):
         self.rsp["data"] = None
 
     def run(self):
-        rc = self.update_ssh()
-        if rc is False:
-            logger.debug("model init error")
+
+        try:
+            self.update_ssh()
+        except SshError as e:
+            logger.debug("SshError exception: %s" % e)
+        except Exception as f:
+            logger.error("Exception error: %s" % f)
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
@@ -39,69 +57,60 @@ class Ssh(Sanji):
         return self.do_put(message, response)
 
     def do_put(self, message, response):
-        if not(hasattr(message, "data")):
-            logger.debug("Invalid Input")
+        try:
+            jsonschema.validate(message.data, PUT_SCHEMA)
+        except Exception as e:
+            logger.debug("Invalid Input: %s" % e)
             return response(code=400, data={"message": "Invalid Input"})
-
-        if ("enable" not in message.data) or ((message.data["enable"] != 0)
-                                              and (message.data["enable"] != 1)
-                                              ):
-            logger.debug("Invalid Data ")
-            return response(code=400, data={"message": "Invalid Data"})
 
         self.model.db["enable"] = message.data["enable"]
         self.model.save_db()
 
-        rc = self.update_ssh()
+        try:
+            self.update_ssh()
+        except SshError as e:
+            logger.debug("SshError exception: %s" % e)
+            return response(code=400, data={"message": e})
+        except Exception as f:
+            logger.error("Exception error: %s" % f)
+            return response(code=400, data={"message": f})
+        return response(code=200, data=self.model.db)
 
-        if rc is False:
-            return response(code=400, data={"message": "update_ssh failed"})
-        return response(code=self.rsp["code"], data=self.rsp["data"])
-
-    def check_ssh(self):
+    def ssh_is_running(self):
         cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
         rc = subprocess.call(cmd, shell=True)
-        return True if rc == 0 else False
+        return rc == 0
 
     def start_ssh(self):
         cmd = "service ssh restart"
         subprocess.call(cmd, shell=True)
-        rc = self.check_ssh()
-
-        if rc is True:
-            logger.info("ssh start success")
-            self.rsp["code"] = 200
-            self.rsp["data"] = {"enable": self.model.db["enable"]}
-            return True
-        else:
-            logger.info("ssh start failed.")
-            self.rsp["code"] = 400
-            self.rsp["data"] = {"message": "ssh start failed"}
-            return False
+        if not self.ssh_is_running():
+            raise SshError("start ssh error")
 
     def stop_ssh(self):
         cmd = "service ssh stop"
         subprocess.call(cmd, shell=True)
-        rc = self.check_ssh()
-
-        if rc is False:
-            logger.info("ssh stop success")
-            self.rsp["code"] = 200
-            self.rsp["data"] = {"enable": self.model.db["enable"]}
-            return True
-        else:
-            logger.info("ssh stop failed.")
-            self.rsp["code"] = 400
-            self.rsp["data"] = {"message": "ssh stop failed"}
-            return False
+        if self.ssh_is_running():
+            raise SshError("stop ssh error")
 
     def update_ssh(self):
 
-        # start or stop ssh by enable
-        if self.model.db["enable"] == 1:
-            return self.start_ssh()
-        elif self.model.db["enable"] == 0:
-            return self.stop_ssh()
+        enable = self.model.db["enable"]
+        assert enable == 0 or enable == 1
+
+        if enable:
+            self.start_ssh()
+        else:
+            self.stop_ssh()
+
+
+class SshError(Exception):
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
 
 
 def main():
