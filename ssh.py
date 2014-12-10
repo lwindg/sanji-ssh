@@ -22,7 +22,8 @@ PUT_SCHEMA = {
             "minimum": 0
         }
     },
-    "required": ["enable"]
+    "required": ["enable"],
+    "additionalProperties": False
 }
 
 
