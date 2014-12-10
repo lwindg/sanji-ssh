@@ -104,8 +104,6 @@ class TestSshClass(unittest.TestCase):
         # arrange
         message = Message({"data": {"enable": 1}})
         update_ssh.return_value = None
-        self.ssh.rsp["code"] = 200
-        self.ssh.rsp["data"] = {"enable": 1}
         mock_fun = Mock(code=400, data=None)
 
         # act

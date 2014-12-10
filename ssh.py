@@ -33,10 +33,6 @@ class Ssh(Sanji):
         path_root = os.path.abspath(os.path.dirname(__file__))
         self.model = ModelInitiator("ssh", path_root, backup_interval=1)
 
-        self.rsp = {}
-        self.rsp["code"] = 0
-        self.rsp["data"] = None
-
     def run(self):
 
         try:
