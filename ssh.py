@@ -47,7 +47,7 @@ class Ssh(Sanji):
         return self.do_get(message, response)
 
     def do_get(self, message, response):
-        return response(data={"enable": self.model.db["enable"]})
+        return response(code=200, data={"enable": self.model.db["enable"]})
 
     @Route(methods="put", resource="/network/ssh")
     def put(self, message, response):
@@ -55,25 +55,27 @@ class Ssh(Sanji):
 
     def do_put(self, message, response):
         try:
-            jsonschema.validate(message.data, PUT_SCHEMA)
-        except Exception as e:
-            logger.debug("Invalid Input: %s" % e)
-            return response(code=400, data={"message": "Invalid Input"})
+            try:
+                jsonschema.validate(message.data, PUT_SCHEMA)
+            except jsonschema.ValidationError:
+                logger.error("Invalid message")
+                return response(code=400, data={"message": "Invalid message"})
 
-        self.model.db["enable"] = message.data["enable"]
-        self.model.save_db()
+            self.model.db["enable"] = message.data["enable"]
+            self.model.save_db()
 
-        try:
-            self.update_ssh()
-        except SshError as e:
-            logger.debug("SshError exception: %s" % e)
-            return response(code=400, data={"message": e})
+            try:
+                self.update_ssh()
+            except SshError as e:
+                logger.error("SshError exception: %s" % e)
+                return response(code=400, data={"message": e})
+            return response(code=200, data=self.model.db)
+
         except Exception as f:
-            logger.error("Exception error: %s" % f)
+            logger.error("put exception: %s" % f)
             return response(code=400, data={"message": f})
-        return response(code=200, data=self.model.db)
 
-    def ssh_is_running(self):
+    def is_ssh_running(self):
         cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
         rc = subprocess.call(cmd, shell=True)
         return rc == 0
@@ -81,13 +83,13 @@ class Ssh(Sanji):
     def start_ssh(self):
         cmd = "service ssh restart"
         subprocess.call(cmd, shell=True)
-        if not self.ssh_is_running():
+        if not self.is_ssh_running():
             raise SshError("start ssh error")
 
     def stop_ssh(self):
         cmd = "service ssh stop"
         subprocess.call(cmd, shell=True)
-        if self.ssh_is_running():
+        if self.is_ssh_running():
             raise SshError("stop ssh error")
 
     def update_ssh(self):
