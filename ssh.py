@@ -37,10 +37,10 @@ class Ssh(Sanji):
 
         try:
             self.update_ssh()
-        except SshError as e:
-            logger.debug("SshError exception: %s" % e)
-        except Exception as f:
-            logger.error("Exception error: %s" % f)
+        except SshError:
+            logger.warning("SshError exception")
+        except Exception as e:
+            logger.error("Exception error: %s" % e)
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
@@ -58,7 +58,7 @@ class Ssh(Sanji):
             try:
                 jsonschema.validate(message.data, PUT_SCHEMA)
             except jsonschema.ValidationError:
-                logger.error("Invalid message")
+                logger.warning("Invalid message")
                 return response(code=400, data={"message": "Invalid message"})
 
             self.model.db["enable"] = message.data["enable"]
@@ -66,14 +66,15 @@ class Ssh(Sanji):
 
             try:
                 self.update_ssh()
-            except SshError as e:
-                logger.error("SshError exception: %s" % e)
-                return response(code=400, data={"message": e})
+            except SshError:
+                msg = "SshError exception"
+                logger.warning(msg)
+                return response(code=400, data={"message": msg})
             return response(code=200, data=self.model.db)
 
         except Exception as f:
-            logger.error("put exception: %s" % f)
-            return response(code=400, data={"message": f})
+            logger.error("Put exception: %s" % f)
+            return response(code=400, data={"message": "Fatal error"})
 
     def is_ssh_running(self):
         cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
