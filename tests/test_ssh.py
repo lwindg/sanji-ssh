@@ -128,7 +128,6 @@ class TestSshClass(unittest.TestCase):
         Ssh.do_put(self.ssh, message=message, response=mock_fun)
 
         # assert
-
         _, kwargs = mock_fun.call_args
         self.assertEqual(kwargs["code"], 400)
         self.assertEqual(kwargs["data"], {"message": "Fatal error"})
@@ -187,7 +186,7 @@ class TestSshClass(unittest.TestCase):
         start_ssh.side_effect = SshError("ssh start failed")
 
         # act and assert
-        self.assertRaises(SshError, self.ssh.start_ssh)
+        self.assertRaises(SshError, self.ssh.update_ssh)
 
     @patch("ssh.Ssh.stop_ssh")
     def test_update_ssh_with_stop_ssh_failed_should_raise_SshError(self, stop_ssh):
@@ -197,7 +196,7 @@ class TestSshClass(unittest.TestCase):
         stop_ssh.side_effect = SshError("ssh stop failed")
 
         # act and assert
-        self.assertRaises(SshError, self.ssh.stop_ssh)
+        self.assertRaises(SshError, self.ssh.update_ssh)
 
 
 if __name__ == "__main__":
