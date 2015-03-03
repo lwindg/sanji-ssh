@@ -4,6 +4,8 @@
 import logging
 import os
 import subprocess
+import jsonschema
+
 from sanji.core import Sanji
 from sanji.core import Route
 from sanji.model_initiator import ModelInitiator
@@ -11,86 +13,112 @@ from sanji.connection.mqtt import Mqtt
 
 logger = logging.getLogger()
 
+PUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "enable": {
+            "type": "integer",
+            "maximum": 1,
+            "minimum": 0
+        }
+    },
+    "required": ["enable"],
+    "additionalProperties": False
+}
+
 
 class Ssh(Sanji):
 
     def init(self, *args, **kwargs):
         path_root = os.path.abspath(os.path.dirname(__file__))
-        self.model = ModelInitiator("ssh", path_root)
-        if self.model.db["enable"] == 1:
-            self.start_model()
-        self.rsp = {"code": 0, "data": None}
+        self.model = ModelInitiator("ssh", path_root, backup_interval=1)
+
+    def run(self):
+
+        try:
+            self.update_ssh()
+        except SshError:
+            logger.warning("SshError exception")
+        except Exception as e:
+            logger.error("Exception error: %s" % e)
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
-        return response(data={"enable": self.model.db["enable"]})
+        return self.do_get(message, response)
+
+    def do_get(self, message, response):
+        return response(code=200, data={"enable": self.model.db["enable"]})
 
     @Route(methods="put", resource="/network/ssh")
     def put(self, message, response):
-        if hasattr(message, "data") and "enable" in message.data:
+        return self.do_put(message, response)
+
+    def do_put(self, message, response):
+        try:
+            try:
+                jsonschema.validate(message.data, PUT_SCHEMA)
+            except jsonschema.ValidationError:
+                logger.warning("Invalid message")
+                return response(code=400, data={"message": "Invalid message"})
+
             self.model.db["enable"] = message.data["enable"]
             self.model.save_db()
-            self.update_ssh()
-            return response(code=self.rsp["code"], data=self.rsp["data"])
-        return response(code=400, data={"message": "Invaild Input"})
 
-    def start_model(self):
-        cmd = "service ssh restart"
-        subprocess.call(cmd, shell=True)
-        rc = self.check_ssh()
-        if rc is True:
-            logger.info("ssh daemon start successfully.")
-            return True
-        else:
-            logger.info("ssh daemon start failed.")
-            return False
+            try:
+                self.update_ssh()
+            except SshError:
+                msg = "SshError exception"
+                logger.warning(msg)
+                return response(code=400, data={"message": msg})
+            return response(code=200, data=self.model.db)
 
-    def check_ssh(self):
+        except Exception as f:
+            logger.error("Put exception: %s" % f)
+            return response(code=400, data={"message": "Fatal error"})
+
+    def is_ssh_running(self):
         cmd = "ps aux | grep -v grep | grep /usr/sbin/sshd"
         rc = subprocess.call(cmd, shell=True)
-        return True if rc == 0 else False
+        return rc == 0
 
     def start_ssh(self):
         cmd = "service ssh restart"
         subprocess.call(cmd, shell=True)
-        rc = self.check_ssh()
-        if rc is True:
-            logger.info("ssh daemon start successfully.")
-            self.rsp["code"] = 200
-            self.rsp["data"] = {"enable": self.model.db["enable"]}
-            return True
-        else:
-            logger.info("ssh daemon start failed.")
-            self.rsp["code"] = 400
-            self.rsp["data"] = {"message": "ssh daemon start failed"}
-            return False
+        if not self.is_ssh_running():
+            raise SshError("start ssh error")
 
     def stop_ssh(self):
         cmd = "service ssh stop"
         subprocess.call(cmd, shell=True)
-        rc = self.check_ssh()
-        if rc is False:
-            logger.info("ssh daemon stop successfully.")
-            self.rsp["code"] = 200
-            self.rsp["data"] = {"enable": self.model.db["enable"]}
-            return True
-        else:
-            logger.info("ssh daemon stop failed.")
-            self.rsp["code"] = 400
-            self.rsp["data"] = {"message": "ssh daemon stop failed"}
-            return False
+        if self.is_ssh_running():
+            raise SshError("stop ssh error")
 
     def update_ssh(self):
-        if self.model.db["enable"] == 1:
-            return self.start_ssh()
-        elif self.model.db["enable"] == 0:
-            return self.stop_ssh()
 
+        enable = self.model.db["enable"]
+        assert enable == 0 or enable == 1
+
+        if enable:
+            self.start_ssh()
+        else:
+            self.stop_ssh()
+
+
+class SshError(Exception):
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return repr(self.value)
+
+
+def main():
+    ssh = Ssh(connection=Mqtt())
+    ssh.start()
 
 if __name__ == '__main__':
     FORMAT = '%(asctime)s - %(levelname)s - %(lineno)s - %(message)s'
     logging.basicConfig(level=0, format=FORMAT)
     logger = logging.getLogger("ssh")
-
-    ssh = Ssh(connection=Mqtt())
-    ssh.start()
+    main()
