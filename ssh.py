@@ -11,7 +11,7 @@ from sanji.core import Route
 from sanji.model_initiator import ModelInitiator
 from sanji.connection.mqtt import Mqtt
 
-logger = logging.getLogger()
+_logger = logging.getLogger("sanji.ssh")
 
 PUT_SCHEMA = {
     "type": "object",
@@ -38,9 +38,9 @@ class Ssh(Sanji):
         try:
             self.update_ssh()
         except SshError:
-            logger.warning("SshError exception")
+            _logger.warning("SshError exception")
         except Exception as e:
-            logger.error("Exception error: %s" % e)
+            _logger.error("Exception error: %s" % e, exc_info=True)
 
     @Route(methods="get", resource="/network/ssh")
     def get(self, message, response):
@@ -58,7 +58,7 @@ class Ssh(Sanji):
             try:
                 jsonschema.validate(message.data, PUT_SCHEMA)
             except jsonschema.ValidationError:
-                logger.warning("Invalid message")
+                _logger.warning("Invalid message")
                 return response(code=400, data={"message": "Invalid message"})
 
             self.model.db["enable"] = message.data["enable"]
@@ -68,12 +68,12 @@ class Ssh(Sanji):
                 self.update_ssh()
             except SshError:
                 msg = "SshError exception"
-                logger.warning(msg)
+                _logger.warning(msg)
                 return response(code=400, data={"message": msg})
             return response(code=200, data=self.model.db)
 
         except Exception as f:
-            logger.error("Put exception: %s" % f)
+            _logger.error("Put exception: %s" % f, exc_info=True)
             return response(code=400, data={"message": "Fatal error"})
 
     def is_ssh_running(self):
@@ -120,5 +120,5 @@ def main():
 if __name__ == '__main__':
     FORMAT = '%(asctime)s - %(levelname)s - %(lineno)s - %(message)s'
     logging.basicConfig(level=0, format=FORMAT)
-    logger = logging.getLogger("ssh")
+    _logger = logging.getLogger("sanji.ssh")
     main()

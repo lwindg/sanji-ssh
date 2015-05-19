@@ -12,7 +12,7 @@ from sanji.message import Message
 from mock import patch
 from mock import Mock
 
-logger = logging.getLogger()
+_logger = logging.getLogger("sanji.ssh")
 
 try:
     sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../')
@@ -33,9 +33,9 @@ class TestSshClass(unittest.TestCase):
         self.ssh.stop()
         self.ssh = None
 
-    @patch("ssh.logger")
+    @patch("ssh._logger")
     @patch("ssh.Ssh.update_ssh")
-    def test_run_with_SshError(self, update_ssh, logger):
+    def test_run_with_SshError(self, update_ssh, _logger):
 
         # arrange
         update_ssh.side_effect = SshError("SshError")
@@ -44,11 +44,11 @@ class TestSshClass(unittest.TestCase):
         Ssh.run(self.ssh)
 
         # assert
-        assert logger.warning.called
+        assert _logger.warning.called
 
-    @patch("ssh.logger")
+    @patch("ssh._logger")
     @patch("ssh.Ssh.update_ssh")
-    def test_run_with_update_ssh_exception(self, update_ssh, logger):
+    def test_run_with_update_ssh_exception(self, update_ssh, _logger):
 
         # arrange
         update_ssh.side_effect = Exception("ssh exception")
@@ -57,7 +57,7 @@ class TestSshClass(unittest.TestCase):
         Ssh.run(self.ssh)
 
         # assert
-        assert logger.error.called
+        assert _logger.error.called
 
     def test_do_get_should_return_db(self):
 
@@ -117,7 +117,8 @@ class TestSshClass(unittest.TestCase):
         self.assertEqual(kwargs["code"], 400)
 
     @patch("ssh.Ssh.update_ssh")
-    def test_do_put_with_update_ssh_failed_should_return_code_400(self, update_ssh):
+    def test_do_put_with_update_ssh_failed_should_return_code_400(
+            self, update_ssh):
 
         # arrange
         message = Message({"data": {"enable": 1}})
@@ -179,7 +180,8 @@ class TestSshClass(unittest.TestCase):
         self.assertRaises(SshError, self.ssh.stop_ssh)
 
     @patch("ssh.Ssh.start_ssh")
-    def test_update_ssh_with_start_ssh_failed_should_raise_SshError(self, start_ssh):
+    def test_update_ssh_with_start_ssh_failed_should_raise_SshError(
+            self, start_ssh):
 
         # arrange
         self.ssh.model.db["enable"] = 1
@@ -189,7 +191,8 @@ class TestSshClass(unittest.TestCase):
         self.assertRaises(SshError, self.ssh.update_ssh)
 
     @patch("ssh.Ssh.stop_ssh")
-    def test_update_ssh_with_stop_ssh_failed_should_raise_SshError(self, stop_ssh):
+    def test_update_ssh_with_stop_ssh_failed_should_raise_SshError(
+            self, stop_ssh):
 
         # arrange
         self.ssh.model.db["enable"] = 0
